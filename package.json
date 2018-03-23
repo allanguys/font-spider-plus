@@ -21,6 +21,7 @@
   "dependencies": {
     "chalk": "^2.3.2",
     "commander": "^2.15.1",
+    "file-exists": "^5.0.1",
     "font-spider": "^1.3.4",
     "lodash": "^4.17.5",
     "ora": "^2.0.0",
