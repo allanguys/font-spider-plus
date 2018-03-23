@@ -1,2 +1,2 @@
 # font-spider-plus
-支持线上font优化的CLI工具，基于font-spider
+font-spider-plus，是一个对在线地址中WebFont进行分析和优化压缩的CLI工具。

@@ -3,7 +3,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const request = require('request');
+const program = require('commander');
 const chalk = require('chalk');
 const _ = require('lodash');
 const ora = require('ora');
@@ -20,27 +20,68 @@ var finalCss = [];
 var tempFilePath = dir + '\/fsp\/';
 
 
-config.url.forEach(function(key,index){
-    child_process.execFile(config.phantomjs, [dir+'/phantom.js',key,index],function(error, stdout, stderr) {
-        if(error) {
-            console.error('error: ' + error);
-            return;
-        };
-        spinner.clear();
-        spinner.text = '正在读取：'+key;
-        spinner.clear();
-        finalCss = finalCss.concat(stdout.split(','));
-        cbLength++;
-        if(cbLength == config.url.length ){
-            mergeCss();
-        }
+
+program
+    .command('init')
+    .description('初始化相关文件')
+    .action(function() {
+
+
+    });
+
+
+program.parse(process.argv);
+
+//初始化文件
+function initFile() {
+    http.get(finalCss[i], (res) => {
+        res.on('data', (chunk) => {
+            cssString +=chunk.toString();
+        });
+        res.on('end',function () {
+            getLength++;
+            if(getLength == finalCss.length){
+                saveFiles(cssString);
+            }
+        })
     })
-});
+}
+//初始完检查配置
+function check() {
+
+
+    else if(){
+        console.log('请先执行 "fsp init" 初始化相关依赖')
+    }else{
+        console.log('请先在fspconfig中填写相关配置信息')
+    }
+
+}
+
+function doM() {
+    config.url.forEach(function(key,index){
+        child_process.execFile(config.phantomjs, [dir+'/phantom.js',key,index],function(error, stdout, stderr) {
+            if(error) {
+                console.error('error: ' + error);
+                return;
+            };
+            spinner.clear();
+            spinner.text = '正在读取：'+key;
+            spinner.clear();
+            finalCss = finalCss.concat(stdout.split(','));
+            cbLength++;
+            if(cbLength == config.url.length ){
+                mergeCss();
+            }
+        })
+    });
+
+}
+
 
 //样式文件合并为一个
 function  mergeCss() {
     finalCss = _.uniqBy(finalCss);
-
     var cssString = '';
     var getLength = 0;
     for(var i=0;i<finalCss.length;i++){

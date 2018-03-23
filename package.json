@@ -1,0 +1,39 @@
+{
+  "name": "font-spider-plus",
+  "version": "0.0.1",
+  "description": "font-spider-plus，是一个对在线地址中WebFont进行分析和优化压缩的CLI工具。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "fsp": "bin/index.js"
+  },
+  "author": "allanguys",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/allanguys/font-spider-plus.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "dependencies": {
+    "chalk": "^2.3.2",
+    "commander": "^2.15.1",
+    "font-spider": "^1.3.4",
+    "lodash": "^4.17.5",
+    "ora": "^2.0.0",
+    "rd": "^1.1.2"
+  },
+  "bugs": {
+    "url": "https://github.com/allanguys/font-spider-plus/issue"
+  },
+  "homepage": "https://github.com/allanguys/font-spider-plus#readme",
+  "devDependencies": {},
+  "keywords": [
+    "font-spider",
+    "fontmin",
+    "font"
+  ]
+}
