@@ -26,11 +26,11 @@ const baseUrl = 'http://ossweb-img.qq.com/images/js/fsp/';
 
 
 
-// program
-//     .name('fsp')
-//     .usage('<command>')
-//     .version(require('../package.json').version)
-//     .parse(process.argv);
+program
+    .name('fsp')
+    .usage('<command>')
+    .version(require('../package.json').version)
+    .parse(process.argv);
 
 program
     .command('init')
@@ -40,13 +40,13 @@ program
     });
 program
     .command('run')
-    .description('优化线上WebFont')
+    .description('线上WebFont优化')
     .action(function() {
         doM()
     });
 program
     .command('local <htmlFiles>')
-    .description('优化本地WebFont')
+    .description('本地WebFont优化')
     .action(function() {
         local(program.args[0])
     });
