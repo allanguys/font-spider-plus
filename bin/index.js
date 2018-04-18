@@ -3,7 +3,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const phantom = require('phantom');
+const puppeteer = require('puppeteer');
 const program = require('commander');
 const chalk = require('chalk');
 const glob = require('glob');
@@ -17,12 +17,12 @@ const fontSpider = require('font-spider');
 const CleanCSS = require('clean-css');
 const rd = require('rd');
 const dir = path.resolve('./');
+var fspconfig = require('../assets/fspconfig');
 let spinner = null;
 let config = null;
 let cbLength = 0;
 let finalCss = [];
 let tempFilePath = dir + '\/fsp\/';
-const baseUrl = 'http://ossweb-img.qq.com/images/js/fsp/';
 
 
 
@@ -93,27 +93,12 @@ function reduce(array) {
 
 //初始化文件
 function initFile() {
-    let fileInitLength = 0;
-    function writeInitFile(baseUrl,fileName) {
-        http.get(baseUrl+fileName, (res) => {
-            let data = '';
-        res.on('data', (chunk) => {
-            data += chunk.toString();
-        });
-            res.on('end',function () {
-                fs.writeFileSync(dir+'/'+fileName, data, 'utf8');
-                doneFn();
-            })
-        })
-    };
-    writeInitFile(baseUrl,'fspconfig.js')
-    function doneFn() {
-        fileInitLength++;
-        if(fileInitLength == 2){
-            console.log(chalk.bgGreen.black('配置文件生成完毕')+'  配置' +chalk.green(' fspconfig.js ') + '后，执行' + chalk.green(' fsp run ') +'即可运行主程序')
-        }
-    }
 
+    fs.writeFile(dir+'/fspconfig.js', fspconfig(), (err) => {
+        if (err) throw err;
+        console.log(chalk.bgGreen.black('fspconfig.js配置文件已生成'))
+        console.log('配置' +chalk.green(' fspconfig.js ') + '后，执行' + chalk.green(' fsp run ') +'即可运行主程序')
+    });
 }
 //初始完检查配置
 function checkFile() {
@@ -131,7 +116,6 @@ function checkFile() {
         }else {
             spinner = ora('配置读取完成').start();
         }
-
     }
     if(r.console == ''){
         r.status = true;
@@ -148,6 +132,7 @@ function clearTempDir() {
 
 function doM() {
     if(!checkFile().status){ console.log(chalk.bgGreen.black(checkFile().console)); return;}
+
     // spinner.text = '正在读取远程文件';
     clearTempDir();
     let css = [];
@@ -163,24 +148,30 @@ function doM() {
         var readerNumber = 0;
         config.url.forEach(function(key,index){
             spinner.text = '正在读取'+key;
-            (async function() {
-                const instance = await phantom.create();
-                const page = await instance.createPage();
-                await page.on('onResourceRequested', function(req) {
-                    if(req.url.indexOf('.css') >0){
-                        req.url = req.url.split('?')[0]
-                        finalCss.push(req.url);
-                    }
+            (async () => {
+                const browser = await puppeteer.launch();
+                const page = await browser.newPage();
+                await page.setRequestInterception(true);
+                page.on('request', request => {
+                    request.continue(); // pass it through.
                 });
-                const status = await page.open(key);
-                const content = await page.property('content');
-                let  fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
-                fs.writeFileSync('fsp/'+ fileName +'.html', content);
+                page.on('response', response => {
+                     const req = response.request();
+                     if(response.status() == 200 && req.url().indexOf('.css') >0){
+                                finalCss.push(req.url().split('?')[0]);
+                     }
+                });
+                await page.goto(key, {
+                    waitUntil: 'load'
+                });
+                await page.content().then((content)=>{
+                    let  fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
+                    fs.writeFileSync(tempFilePath + fileName +'.html', content);
+                })
+
                 await  m();
-                await instance.exit();
-
+                await browser.close();
             })();
-
         });
         function  m(){
             readerNumber++;
@@ -242,6 +233,7 @@ function saveFiles(content) {
 }
 
 function runFontSpider(f) {
+    if(!!spinner){spinner.succeed('URL读取完成');}
     console.log()
     fontSpider.spider(f, {
         silent: false
@@ -250,17 +242,17 @@ function runFontSpider(f) {
     }).then(function(webFonts) {
         if(!!spinner){spinner.stop();}
         exec('rm -r ' + tempFilePath, function (err, stdout, stderr) {
+            if (err) throw err;
             if(webFonts.length == 0){
                 console.log('没有发现可以优化的自定义字体')
             }else{
                 if(!!spinner){spinner.stop();}
-                let totalSize = 0;
-                webFonts.forEach(function (W,index) {
+                webFonts.forEach(function (W) {
                     console.log('')
                     console.log(chalk.green('已提取')+ chalk.bgGreen.black(W.chars.length)+chalk.green('个') + chalk.bgGreen.black(W.family)+chalk.green('字体：'))
                     console.log(chalk.white(' '+ W.chars+' '))
                     console.log(chalk.white('生成字体文件：'))
-                    W.files.forEach(function (F,index) {
+                    W.files.forEach(function (F) {
                         console.log(chalk.whiteBright('* '+F.url  ) + chalk.cyan(' (优化体积：'+(parseInt((W.originalSize - F.size)/1024))+'KB)') )
                     })
                 })
