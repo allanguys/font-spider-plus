@@ -17,11 +17,12 @@ const fontSpider = require('font-spider');
 const CleanCSS = require('clean-css');
 const rd = require('rd');
 const dir = path.resolve('./');
-var fspconfig = require('../assets/fspconfig');
+const fspconfig = require('../assets/fspconfig');
 let spinner = null;
 let config = null;
 let cbLength = 0;
 let finalCss = [];
+let fileNameList = [];
 let tempFilePath = dir + '\/fsp\/';
 
 
@@ -132,8 +133,6 @@ function clearTempDir() {
 
 function doM() {
     if(!checkFile().status){ console.log(chalk.bgGreen.black(checkFile().console)); return;}
-
-    // spinner.text = '正在读取远程文件';
     clearTempDir();
     let css = [];
 
@@ -145,9 +144,9 @@ function doM() {
         e()
     })
     function e() {
-        var readerNumber = 0;
+        let readerNumber = 0;
+        spinner.text = '正在读取配置中的网址...';
         config.url.forEach(function(key,index){
-            spinner.text = '正在读取'+key;
             (async () => {
                 const browser = await puppeteer.launch();
                 const page = await browser.newPage();
@@ -158,6 +157,7 @@ function doM() {
                 page.on('response', response => {
                      const req = response.request();
                      if(response.status() == 200 && req.url().indexOf('.css') >0){
+
                                 finalCss.push(req.url().split('?')[0]);
                      }
                 });
@@ -166,7 +166,10 @@ function doM() {
                 });
                 await page.content().then((content)=>{
                     let  fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
-                    fs.writeFileSync(tempFilePath + fileName +'.html', content);
+
+                    fileNameList.push(fileName);
+                    global[fileName] = content;
+                    //fs.writeFileSync(tempFilePath + fileName +'.html', content);
                 })
 
                 await  m();
@@ -190,7 +193,6 @@ function  mergeCss(finalCss) {
             http.get(finalCss[i], (res) => {
                 res.on('data', (chunk) => {
                     cssString +=chunk.toString();
-
                 });
                 res.on('end',function () {
                     getLength++;
@@ -203,62 +205,52 @@ function  mergeCss(finalCss) {
     }
 }
 function saveFiles(content) {
-
     content = _.replace(content, new RegExp(config.onlinePath,"gm"), config.localPath);
-
-
-    var contentClear = new CleanCSS().minify(content).styles;
-
+    let contentClear = new CleanCSS().minify(content).styles;
     let files = [];
-    rd.eachFileFilterSync(tempFilePath, /\.html$/,function (f,s) {
-        files.push(f);
-    });
     let nowIndex = 0;
-    files.forEach(function (key,index) {
+    fileNameList.forEach(function (key,index) {
 
-            fs.readFile(key,function (err,data) {
-                if(err) console.log(err);
-                pageContent = data.toString().replace(new RegExp("(<link.*\\s+href=(?:\"[^\"]*\"|'[^']*')[^<]*>)","gm"),'');
-                fs.writeFile(tempFilePath+key.replace(dir+'\\fsp\\',''),pageContent+'<style type="text/css">'+ contentClear +'</style>','',function () {
-                    nowIndex++;
-                    if(nowIndex == files.length){
-                        runFontSpider(files);
-                    }
+            let con = global[key].replace(new RegExp("(<link.*\\s+href=(?:\"[^\"]*\"|'[^']*')[^<]*>)","gm"),'')+'<style type="text/css">'+ contentClear +'</style>';
+            files.push(tempFilePath+key+'.html');
+            fs.writeFile(tempFilePath+key+'.html',con,function () {
+                nowIndex++;
+                if(nowIndex == fileNameList.length){
+                    runFontSpider(files);
+                }
 
-                });
-
-            })
-
-    })
+            });
+    });
 }
 
 function runFontSpider(f) {
     if(!!spinner){spinner.succeed('URL读取完成');}
     console.log()
+    if(!!spinner){spinner.text = '正在优化...';}
     fontSpider.spider(f, {
         silent: false
     }).then(function(webFonts) {
         return fontSpider.compressor(webFonts, {backup: true});
     }).then(function(webFonts) {
-        if(!!spinner){spinner.stop();}
+
         exec('rm -r ' + tempFilePath, function (err, stdout, stderr) {
             if (err) throw err;
             if(webFonts.length == 0){
-                console.log('没有发现可以优化的自定义字体')
+                if(!!spinner){spinner.succeed('没有发现可以优化的自定义字体')}
             }else{
+                if(!!spinner){spinner.succeed('优化完成')}
                 if(!!spinner){spinner.stop();}
                 webFonts.forEach(function (W) {
                     console.log('')
-                    console.log(chalk.green('已提取')+ chalk.bgGreen.black(W.chars.length)+chalk.green('个') + chalk.bgGreen.black(W.family)+chalk.green('字体：'))
+                    console.log(chalk.green('已提取')+ chalk.bgGreen.black(' '+W.chars.length+' ')+chalk.green('个') + chalk.bgGreen.black(' '+W.family+' ')+chalk.green('字体：'))
                     console.log(chalk.white(' '+ W.chars+' '))
                     console.log(chalk.white('生成字体文件：'))
                     W.files.forEach(function (F) {
-                        console.log(chalk.whiteBright('* '+F.url  ) + chalk.cyan(' (优化体积：'+(parseInt((W.originalSize - F.size)/1024))+'KB)') )
+                        console.log(chalk.whiteBright('* '+F.url +','+parseInt(F.size/1024)+'K') + chalk.cyan(' (已优化体积：'+(parseInt((W.originalSize - F.size)/1024))+'K)') )
                     })
                 })
             };
         });
-
     }).catch(function(errors) {
         clearTempDir();
         if(!!spinner){
