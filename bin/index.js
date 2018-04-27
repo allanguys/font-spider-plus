@@ -145,7 +145,7 @@ function doM() {
     })
     function e() {
         let readerNumber = 0;
-        spinner.text = '正在读取配置中的网址...';
+        spinner.text = '正在分析配置中的网址...';
         config.url.forEach(function(key,index){
             (async () => {
                 const browser = await puppeteer.launch();
@@ -224,7 +224,7 @@ function saveFiles(content) {
 }
 
 function runFontSpider(f) {
-    if(!!spinner){spinner.succeed('URL读取完成');}
+    if(!!spinner){spinner.succeed('网址分析完成');}
     console.log()
     if(!!spinner){spinner.text = '正在优化...';}
     fontSpider.spider(f, {
