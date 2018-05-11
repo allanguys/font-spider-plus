@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const program = require('commander');
@@ -147,6 +148,7 @@ function doM() {
         let readerNumber = 0;
         spinner.text = '正在分析配置中的网址...';
         config.url.forEach(function(key,index){
+
             (async () => {
                 const browser = await puppeteer.launch();
                 const page = await browser.newPage();
@@ -190,7 +192,11 @@ function  mergeCss(finalCss) {
     let getLength = 0;
     for(let i=0;i<finalCss.length;i++){
         (function (i) {
-            http.get(finalCss[i], (res) => {
+            var client = http;
+            if (finalCss[i].toString().indexOf("https") === 0){
+                client = https;
+            }
+            client.get(finalCss[i], (res) => {
                 res.on('data', (chunk) => {
                     cssString +=chunk.toString();
                 });
