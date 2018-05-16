@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const fse = require('fs-extra')
 const http = require('http');
 const https = require('https');
 const path = require('path');
@@ -128,7 +129,8 @@ function checkFile() {
 }
 function clearTempDir() {
     if (fs.existsSync(tempFilePath)){
-        execSync('rm -r ' + tempFilePath)
+        fse.removeSync(tempFilePath)
+        // execSync('rm -r ' + tempFilePath)
     }
 }
 
@@ -239,7 +241,7 @@ function runFontSpider(f) {
         return fontSpider.compressor(webFonts, {backup: true});
     }).then(function(webFonts) {
 
-        exec('rm -r ' + tempFilePath, function (err, stdout, stderr) {
+        fse.remove(tempFilePath, function (err, stdout, stderr) {
             if (err) throw err;
             if(webFonts.length == 0){
                 if(!!spinner){spinner.succeed('没有发现可以优化的自定义字体')}
