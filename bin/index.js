@@ -93,7 +93,6 @@ function reduce(array) {
 
     return ret;
 }
-
 //初始化文件
 function initFile() {
 
@@ -123,22 +122,16 @@ function checkFile() {
     if(r.console == ''){
         r.status = true;
     }
-
     return r;
-
 }
 function clearTempDir() {
     if (fs.existsSync(tempFilePath)){
         fse.removeSync(tempFilePath)
-        // execSync('rm -r ' + tempFilePath)
     }
 }
-
 function doM() {
     if(!checkFile().status){ console.log(chalk.bgGreen.black(checkFile().console)); return;}
     clearTempDir();
-    let css = [];
-
     function hashCode(s){
         return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
     }
@@ -149,18 +142,20 @@ function doM() {
     function e() {
         let readerNumber = 0;
         spinner.text = '正在分析配置中的网址...';
-        config.url.forEach(function(key,index){
+        config.url.forEach(function(key){
 
             (async () => {
                 const browser = await puppeteer.launch();
                 const page = await browser.newPage();
                 await page.setRequestInterception(true);
                 page.on('request', request => {
-                    request.continue(); // pass it through.
+                    request.continue();
                 });
                 page.on('response', response => {
+
                      const req = response.request();
-                     if(response.status() == 200 && req.url().indexOf('.css') >0){
+
+                     if(response.status() === 200 && req.url().indexOf('.css') >0){
 
                                 finalCss.push(req.url().split('?')[0]);
                      }
@@ -170,19 +165,23 @@ function doM() {
                 });
                 await page.content().then((content)=>{
                     let  fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
-
                     fileNameList.push(fileName);
                     global[fileName] = content;
-                    //fs.writeFileSync(tempFilePath + fileName +'.html', content);
                 })
-
                 await  m();
                 await browser.close();
             })();
         });
         function  m(){
             readerNumber++;
-            if(readerNumber ==  config.url.length) mergeCss(finalCss);
+            if(readerNumber === config.url.length) {
+                if(finalCss.length === 0){
+                    saveFiles('');
+                }else{
+                    mergeCss(finalCss);
+                }
+
+            }
         }
     }
 }
@@ -204,7 +203,7 @@ function  mergeCss(finalCss) {
                 });
                 res.on('end',function () {
                     getLength++;
-                    if(getLength == finalCss.length){
+                    if(getLength === finalCss.length){
                         saveFiles(cssString);
                     }
                 })
@@ -220,10 +219,11 @@ function saveFiles(content) {
     fileNameList.forEach(function (key,index) {
 
             let con = global[key].replace(new RegExp("(<link.*\\s+href=(?:\"[^\"]*\"|'[^']*')[^<]*>)","gm"),'')+'<style type="text/css">'+ contentClear +'</style>';
+            con  = _.replace(global[key], new RegExp(config.onlinePath,"gm"), config.localPath);
             files.push(tempFilePath+key+'.html');
             fs.writeFile(tempFilePath+key+'.html',con,function () {
                 nowIndex++;
-                if(nowIndex == fileNameList.length){
+                if(nowIndex === fileNameList.length){
                     runFontSpider(files);
                 }
 
@@ -241,9 +241,9 @@ function runFontSpider(f) {
         return fontSpider.compressor(webFonts, {backup: true});
     }).then(function(webFonts) {
 
-        fse.remove(tempFilePath, function (err, stdout, stderr) {
+        fse.remove(tempFilePath, function (err) {
             if (err) throw err;
-            if(webFonts.length == 0){
+            if(webFonts.length === 0){
                 if(!!spinner){spinner.succeed('没有发现可以优化的自定义字体')}
             }else{
                 if(!!spinner){spinner.succeed('优化完成')}
