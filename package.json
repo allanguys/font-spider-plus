@@ -26,6 +26,7 @@
     "font-spider": "^1.3.4",
     "fs-extra": "^6.0.1",
     "glob": "^7.1.2",
+    "html-minifier": "^3.5.19",
     "lodash": "^4.17.5",
     "ora": "^2.0.0",
     "puppeteer": "^1.3.0",
