@@ -24,6 +24,7 @@ let spinner = null;
 let config = null;
 let cbLength = 0;
 let finalCss = [];
+let inlineCss = '';
 let fileNameList = [];
 let tempFilePath = dir + '\/fsp\/';
 
@@ -86,7 +87,6 @@ function local(htmlFiles) {
 // 扁平化二维数组
 function reduce(array) {
     let ret = [];
-
     array.forEach(function(item) {
         ret.push.apply(ret, item);
     });
@@ -141,9 +141,9 @@ function doM() {
     })
     function e() {
         let readerNumber = 0;
+        let innerStyleReg = /<(style)(?:[^>]*)?>([\s\S]*?)(?:<\/\1>[^\"\']|<\/\1>$)/gi;
         spinner.text = '正在分析配置中的网址...';
         config.url.forEach(function(key){
-
             (async () => {
                 const browser = await puppeteer.launch();
                 const page = await browser.newPage();
@@ -164,7 +164,10 @@ function doM() {
                     waitUntil: 'load'
                 });
                 await page.content().then((content)=>{
-                    let  fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
+                    let fileName = hashCode(parseInt(new Date().getUTCMilliseconds()).toString());
+                    c = new CleanCSS().minify(content).styles;
+                    inlineCss += c;
+                    content = content.replace(innerStyleReg,'')
                     fileNameList.push(fileName);
                     global[fileName] = content;
                 })
@@ -175,11 +178,8 @@ function doM() {
         function  m(){
             readerNumber++;
             if(readerNumber === config.url.length) {
-                if(finalCss.length === 0){
-                    saveFiles('');
-                }else{
-                    mergeCss(finalCss);
-                }
+
+                   mergeCss(finalCss);
 
             }
         }
@@ -188,27 +188,31 @@ function doM() {
 
 //样式文件合并为一个
 function  mergeCss(finalCss) {
-    finalCss = _.uniqBy(finalCss);
-    let cssString = '';
-    let getLength = 0;
-    for(let i=0;i<finalCss.length;i++){
-        (function (i) {
-            var client = http;
-            if (finalCss[i].toString().indexOf("https") === 0){
-                client = https;
-            }
-            client.get(finalCss[i], (res) => {
-                res.on('data', (chunk) => {
-                    cssString +=chunk.toString();
-                });
-                res.on('end',function () {
-                    getLength++;
-                    if(getLength === finalCss.length){
-                        saveFiles(cssString);
-                    }
+    if(finalCss.length === 0){
+        saveFiles(inlineCss);
+    }else{
+        finalCss = _.uniqBy(finalCss);
+        let cssString = '';
+        let getLength = 0;
+        for(let i=0;i<finalCss.length;i++){
+            (function (i) {
+                var client = http;
+                if (finalCss[i].toString().indexOf("https") === 0){
+                    client = https;
+                }
+                client.get(finalCss[i], (res) => {
+                    res.on('data', (chunk) => {
+                        cssString +=chunk.toString();
+                    });
+                    res.on('end',function () {
+                        getLength++;
+                        if(getLength === finalCss.length){
+                            saveFiles(cssString+inlineCss);
+                        }
+                    })
                 })
-            })
-        })(i)
+            })(i)
+        }
     }
 }
 function saveFiles(content) {
@@ -219,7 +223,7 @@ function saveFiles(content) {
     fileNameList.forEach(function (key,index) {
 
             let con = global[key].replace(new RegExp("(<link.*\\s+href=(?:\"[^\"]*\"|'[^']*')[^<]*>)","gm"),'')+'<style type="text/css">'+ contentClear +'</style>';
-            con  = _.replace(global[key], new RegExp(config.onlinePath,"gm"), config.localPath);
+            //con  = _.replace(global[key], new RegExp(config.onlinePath,"gm"), config.localPath);
             files.push(tempFilePath+key+'.html');
             fs.writeFile(tempFilePath+key+'.html',con,function () {
                 nowIndex++;
