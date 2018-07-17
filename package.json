@@ -1,6 +1,6 @@
 {
   "name": "font-spider-plus",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "font-spider-plus（字蛛+）是一个智能 WebFont 压缩工具，它能自动分析出本地页面和线上页面使用的 WebFont 并进行按需压缩。",
   "main": "bin/index.js",
   "scripts": {
