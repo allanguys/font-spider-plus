@@ -229,6 +229,9 @@ function saveFiles(content) {
                 nowIndex++;
                 if(nowIndex === fileNameList.length){
                     runFontSpider(files);
+                    if(!!spinner){spinner.succeed('页面分析完成');}
+                    console.log()
+                    if(!!spinner){spinner.text = '正在优化...';}
                 }
 
             });
@@ -236,18 +239,15 @@ function saveFiles(content) {
 }
 
 function runFontSpider(f) {
-    if(!!spinner){spinner.succeed('网址分析完成');}
-    console.log()
-    if(!!spinner){spinner.text = '正在优化...';}
+
     fontSpider.spider(f, {
         silent: false
     }).then(function(webFonts) {
         return fontSpider.compressor(webFonts, {backup: true});
     }).then(function(webFonts) {
-
         fse.remove(tempFilePath, function (err) {
             if (err) throw err;
-            if(webFonts.length === 0){
+            if(webFonts[0].chars === ''){
                 if(!!spinner){spinner.succeed('没有发现可以优化的自定义字体')}
             }else{
                 if(!!spinner){spinner.succeed('优化完成')}
